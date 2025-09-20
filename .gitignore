@@ -1,2 +1,43 @@
+# .gitignore
+
+# Папка IDE (PyCharm/IntelliJ)
 .idea/
-idea/
+
+# Виртуальное окружение Python
+.venv/
+venv/
+env/
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Файлы настроек
+*.swp
+*.swo
+*~
+
+# Логи и данные
+*.log
+*.sqlite3
+*.db
+
+# Файлы окружения
+.env
+.env.local
+.env.production
+
+# Резервные копии
+*.bak
+*.backup
+
+# Системные файлы
+.DS_Store
+Thumbs.db.idea/
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.env

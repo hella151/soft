@@ -1,8 +1,0 @@
-# Игнорировать всю папку .idea
-.idea/
-
-## Но разрешить конкретные файлы с настройками
-#!.idea/codeStyles/codeStyleConfig.xml
-#!.idea/inspectionProfiles/Project_Default.xml
-#!.idea/vcs.xml
-#!.idea/.gitignore
