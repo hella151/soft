@@ -2,6 +2,7 @@
 
 # Папка IDE (PyCharm/IntelliJ)
 .idea/
+*.session
 
 # Виртуальное окружение Python
 .venv/
@@ -32,12 +33,4 @@ __pycache__/
 *.bak
 *.backup
 
-# Системные файлы
-.DS_Store
-Thumbs.db.idea/
-.venv/
-venv/
-env/
-__pycache__/
-*.pyc
-.env
+*.cfg
