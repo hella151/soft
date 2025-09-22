@@ -4,6 +4,7 @@ import time
 from pyrogram.handlers import MessageHandler
 from data import licensia_check, main_bot_function
 from pyrogram import Client
+from pyrogram.enums import ChatType
 from pyrogram.errors import FloodWait
 from handlers import all_handlers
 from data.log import logger
@@ -64,6 +65,7 @@ class AsyncConsoleManager:
 
     async def handle_start(self):
         """Обработка команды start"""
+
         if self.is_running:
             logger.info("✅ Бот уже запущен")
         else:
@@ -71,6 +73,7 @@ class AsyncConsoleManager:
             self.setup_handlers()
             self.is_running = True
             logger.info("✅ Клиент запущен")
+            self.chats = await self.search_me_channels()
 
     async def handle_start_mailing(self):
         """Обработка команды start_mailing"""
@@ -93,6 +96,57 @@ class AsyncConsoleManager:
         try:
             await self.stop_bot_function()
             logger.info("🤖 Основная функция бота остановлена")
+        except Exception as e:
+            logger.warning(f"Перезапустите программу {e}")
+
+    async def search_me_channels(self):
+        if not self.is_running:
+            logger.warning("❌ Бот не запущен")
+            return
+        try:
+            chats = []
+            processed_chats = set()
+
+            logger.info(f"Найденные чаты для рассылки:")
+            async for dialog in self.app.get_dialogs(chat_list=0):
+                chat = dialog.chat
+
+                if chat.id in processed_chats:
+                    break
+
+                if chat.type == ChatType.SUPERGROUP:
+                    try:
+                        if str(chat.id).startswith('-100'):
+                            chats.append(chat.id)
+                            logger.info(chat.title)
+                        await asyncio.sleep(1)  # Увеличиваем паузу против floodwait
+
+                    except Exception as ex:
+                        print(f'❌ Ошибка {ex}')
+
+                processed_chats.add(chat.id)
+
+            await asyncio.sleep(0.5)
+
+            async for dialog in self.app.get_dialogs(chat_list=1):
+                chat = dialog.chat
+
+                if chat.id in processed_chats:
+                    break
+
+                if chat.type == ChatType.SUPERGROUP:
+                    try:
+                        if str(chat.id).startswith('-100'):
+                            chats.append(chat.id)
+                            logger.info(chat.title)
+                        await asyncio.sleep(1)  # Увеличиваем паузу против floodwait
+
+                    except Exception as ex:
+                        print(f'❌ Ошибка {ex}')
+
+                processed_chats.add(chat.id)
+
+            return chats
         except Exception as e:
             logger.warning(f"Перезапустите программу {e}")
 
@@ -122,7 +176,7 @@ class AsyncConsoleManager:
                         return
                     except Exception as ex:
                         logger.error(f"Ошибка захода в {chat['title']} {ex}")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(5)
         except Exception as e:
             logger.warning(f"Перезапустите программу {e}")
 
@@ -186,22 +240,17 @@ class AsyncConsoleManager:
         time.sleep(1)
         sys.exit(0)
 
-    # async def get_channels(self):
-    #     """Корректное завершение работы"""
-    #     try:
-
-
 
     async def start_bot_function(self):
         """Запуск основной функции бота"""
         try:
             logger.info("🤖 Запуск основной функции бота...")
-            await main_bot_function(self.app)
+            await main_bot_function(self.app, self.chats)
         except asyncio.CancelledError:
             logger.info("⏹️ Основная функция бота остановлена")
         except Exception as e:
             logger.error(f"❌ Ошибка в основной функции бота: {e}")
-            raise
+
         finally:
             self.is_running = False
 
