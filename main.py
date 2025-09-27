@@ -16,11 +16,11 @@ def clear_line():
     sys.stdout.write('\r\033[K')
     sys.stdout.flush()
 
-
 class AsyncConsoleManager:
     def __init__(self):
+        self.chats = None
         self.app = Client(api_hash='54b8ea23241abdef8044090c3c9a2add', api_id='28982778',
-                          name="hella", skip_updates=True)
+                          name="karina", skip_updates=True)
         self.is_running = False
         self.bot_task = None
 
@@ -73,7 +73,7 @@ class AsyncConsoleManager:
             self.setup_handlers()
             self.is_running = True
             logger.info("✅ Клиент запущен")
-            self.chats = await self.search_me_channels()
+
 
     async def handle_start_mailing(self):
         """Обработка команды start_mailing"""
@@ -82,8 +82,10 @@ class AsyncConsoleManager:
             return
 
         try:
-            self.bot_task = asyncio.create_task(self.start_bot_function())
             logger.info("🤖 Основная функция бота запущена")
+            self.chats = await self.search_me_channels()
+            await asyncio.sleep(1)
+            self.bot_task = asyncio.create_task(self.start_bot_function())
         except Exception as e:
             logger.warning(f"Перезапустите программу {e}")
 

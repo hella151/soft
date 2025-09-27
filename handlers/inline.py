@@ -1,5 +1,4 @@
 import asyncio
-import sys
 from data.log import logger
 from pyrogram import Client
 from pyrogram import filters
@@ -30,7 +29,7 @@ async def catch_callback_urls(client: Client, message: Message):
             try:
                 await client.join_chat(chat_id=(url))
                 await asyncio.sleep(3)
-                logger.info(f"зашли в {url}", file=sys.stderr)
+                logger.info(f"зашли в {url}")
             except Exception as ex:
                 logger.error(f"не получилось присоединится: {ex}")
 

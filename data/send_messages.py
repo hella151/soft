@@ -3,7 +3,13 @@ import random
 from pyrogram import Client
 from data.log import logger
 from data.functions import mess_to_chat
-from main import clear_line
+import sys
+
+def clear_line():
+    """Очистка текущей строки"""
+    sys.stdout.write('\r\033[K')
+    sys.stdout.flush()
+
 
 async def main_bot_function(client: Client, chats: list):
     """Основная функция работы бота"""
