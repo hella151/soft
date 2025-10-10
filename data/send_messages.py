@@ -23,13 +23,13 @@ async def main_bot_function(client: Client, chats: list):
             while n < 5 + random.randint(1, 2):
                 test_message = random.choice(messages)
 
+                # ИСПРАВЛЕННЫЙ ВЫЗОВ - параметры в правильном порядке
                 await mess_to_chat(
-                    chats_id=chats,
-                    message_text=test_message,
-                    client=client
+                    message_text=test_message,  # ПЕРВЫЙ параметр
+                    client=client,              # ВТОРОЙ параметр
+                    chats_id=chats              # ТРЕТИЙ параметр
                 )
                 n += 1
-
                 await asyncio.sleep(60 + random.randint(1, 3))
 
             logger.info(f"📊 session: {k + 1}")

@@ -7,7 +7,7 @@ from pyrogram import Client
 from pyrogram.enums import ChatType
 from pyrogram.errors import FloodWait
 from handlers import all_handlers
-from data.log import logger
+from data.log import logger, disable_pyrogram_logs
 from functions_ import search_chats_raw, is_member
 
 

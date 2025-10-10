@@ -3,8 +3,13 @@ from data.log import logger
 from pyrogram import Client
 from pyrogram import filters
 from pyrogram.types import Message
+import sys
 
-chats_vz = [-1002029765485]
+
+def clear_line():
+    """Очистка текущей строки"""
+    sys.stdout.write('\r\033[K')
+    sys.stdout.flush()
 
 # @app.on_message(filters.chat(chats_vz) & filters.mentioned)
 async def catch_callback_urls(client: Client, message: Message):
@@ -32,5 +37,7 @@ async def catch_callback_urls(client: Client, message: Message):
                 logger.info(f"зашли в {url}")
             except Exception as ex:
                 logger.error(f"не получилось присоединится: {ex}")
+    else:
+        return
 
-inline_handler =[(catch_callback_urls, filters.chat(chats_vz) & filters.mentioned)]
+inline_handler =[(catch_callback_urls, filters.mentioned)]

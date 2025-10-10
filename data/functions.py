@@ -30,13 +30,13 @@ def clear_line():
 # УЛУЧШЕННАЯ ВЕРСИЯ ФУНКЦИИ mess_to_chat
 async def mess_to_chat(message_text: str, client, chats_id):
     global chat
-    clear_line()
     if not chats_id:  # Проверка на пустой список
         logger.warning("📭 Список чатов пуст")
         return
 
+
     async for chat_id in async_generator(chats_id):
-        print(chat_id)
+        clear_line()
         try:
             # Проверяем валидность chat_id
             if not chat_id or not isinstance(chat_id, (int, str)):

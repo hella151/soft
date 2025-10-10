@@ -53,3 +53,11 @@ def setup_logger():
 
 # Создаем глобальный логгер
 logger = setup_logger()
+
+def disable_pyrogram_logs():
+    """Полностью отключает логи Pyrogram"""
+    import logging
+    logging.getLogger("pyrogram").setLevel(logging.CRITICAL)
+    logging.getLogger("pyrogram.parser").setLevel(logging.CRITICAL)
+    logging.getLogger("pyrogram.session").setLevel(logging.CRITICAL)
+    logging.getLogger("pyrogram.connection").setLevel(logging.CRITICAL)
