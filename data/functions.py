@@ -3,9 +3,9 @@ import random
 import sys
 from typing import Any
 from data.log import logger
-from pyrogram import Client, enums
+from pyrogram import enums
 from pyrogram.errors import FloodWait, RPCError, ChatWriteForbidden, ChannelPrivate, UserBannedInChannel
-
+from pyrogram.raw import functions
 
 async def async_generator(my_list: list) -> Any:
     if not my_list:  # Проверяем пустой список/None
@@ -13,14 +13,6 @@ async def async_generator(my_list: list) -> Any:
 
     for item in my_list:
         yield item
-
-async def delete(client: Client, chats_id):
-    async for id in async_generator(my_list=chats_id):
-        try:
-            await client.leave_chat(chat_id=id)
-            await asyncio.sleep(5)
-        except Exception:
-            continue
 
 def clear_line():
     """Очистка текущей строки"""
@@ -54,7 +46,18 @@ async def mess_to_chat(message_text: str, client, chats_id):
             await asyncio.sleep(1)
 
             # Отправляем сообщение
-            await client.send_message(chat_id=chat_id, text=message_text)
+            peer = await client.resolve_peer(chat_id)
+            print(peer)
+            # Отправляем сообщение через raw метод
+            await client.invoke(
+                functions.messages.SendMessage(
+                    peer=peer,
+                    message="Тестовое сообщение через raw",
+                    random_id=client.rnd_id(),
+                    no_webpage=False,
+                    silent=False
+                )
+            )
             logger.info(f"✅ Отправлено сообщение в чат -> {chat.title}")
 
         except FloodWait as e:
@@ -75,6 +78,7 @@ async def mess_to_chat(message_text: str, client, chats_id):
             continue
 
         except ValueError as e:
+            print(chat_id)
             logger.error(f"❌ Неверный аргумент: {e.args, e}")
             continue
 

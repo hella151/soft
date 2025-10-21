@@ -75,22 +75,3 @@ async def search_chats_raw(client: Client, query) -> List:
     except Exception as e:
         print(f"❌ Ошибка поиска: {e}")
         return []
-
-
-
-# if __name__ == "__main__":
-#     try:
-#         app.run(main())
-#     except KeyboardInterrupt:
-#         print('\n⏹️ Программа остановлена пользователем')
-#
-# if await is_member(client, chat_id=str("-100" + f"{chat.id}")):
-#     continue
-# else:
-#     try:
-#         await client.join_chat(chat_id=str("-100" + f"{chat.id}"))
-#         print(f"Зашли в {getattr(chat, 'title', '')}")
-#
-#     except Exception as ex:
-#         print(f"Ошибка захода в {getattr(chat, 'title', '')} {ex}")
-# await asyncio.sleep(3)

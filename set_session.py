@@ -27,8 +27,8 @@ async def get_session_string():
 
         # Читаем существующие сессии
         sessions_data = []
-        if os.path.exists("sessions.json"):
-            with open("sessions.json", 'r', encoding='utf-8') as file:
+        if os.path.exists("data/sessions/sessions.json"):
+            with open("data/sessions/sessions.json", 'r', encoding='utf-8') as file:
                 try:
                     sessions_data = json.load(file)
                 except json.JSONDecodeError:
@@ -43,7 +43,7 @@ async def get_session_string():
         sessions_data.append(user_info)
 
         # Записываем обратно в файл
-        with open("sessions.json", 'w', encoding='utf-8') as file:
+        with open("data/sessions/sessions.json", 'w', encoding='utf-8') as file:
             json.dump(sessions_data, file, ensure_ascii=False, indent=2)
 
         print(f"Сессия для {me.first_name} успешно сохранена!")

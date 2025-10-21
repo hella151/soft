@@ -1,7 +1,6 @@
 import asyncio
 from typing import Any
 
-from data import  delete
 from pyrogram import Client, enums
 
 from pyrogram import filters
@@ -57,15 +56,6 @@ async def reply(client: Client, message: Message) -> Any:
         await asyncio.sleep(1)
         await message.reply(f'скинь пж полную ссылку, типо вот так \n'
                             f'{url}')
-
-    if message.text.lower() == 'delete':
-        try:
-            await message.reply('Начинаю выход из чатов...', quote=True)
-            # Здесь должна быть функция delete() для выхода из чатов
-            await delete(client, chats_id=chats_ids)
-            await message.reply('Готово!', quote=True)
-        except Exception as e:
-            await message.reply(f'Ошибка: {e}', quote=True)
 
 # @app.on_message(filters=filters.private)
 
