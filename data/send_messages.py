@@ -10,9 +10,8 @@ def clear_line():
     sys.stdout.write('\r\033[K')
     sys.stdout.flush()
 
-
-async def main_bot_function(client: Client, chats: list):
-    """Основная функция работы бота"""
+async def main_bot_function(client: Client, chats: list, cache_manager=None, session_name=None):
+    """Основная функция работы бота с поддержкой кэша"""
     try:
         with open('text.txt', 'r', encoding='utf-8') as file:
             messages = [line.strip().replace('\\n', '\n') for line in file]
@@ -21,13 +20,15 @@ async def main_bot_function(client: Client, chats: list):
         while k < 15:
             n = 0
             while n < 5 + random.randint(1, 2):
-                test_message = random.choice(messages)
+                message = random.choice(messages)
 
-                # ИСПРАВЛЕННЫЙ ВЫЗОВ - параметры в правильном порядке
+                # ОБНОВЛЕННЫЙ ВЫЗОВ с поддержкой кэша
                 await mess_to_chat(
-                    message_text=test_message,  # ПЕРВЫЙ параметр
+                    message_text=message,  # ПЕРВЫЙ параметр
                     client=client,              # ВТОРОЙ параметр
-                    chats_id=chats              # ТРЕТИЙ параметр
+                    chats_id=chats,             # ТРЕТИЙ параметр
+                    cache_manager=cache_manager, # НОВЫЙ параметр для кэша
+                    session_name=session_name    # НОВЫЙ параметр для имени сессии
                 )
                 n += 1
                 await asyncio.sleep(60 + random.randint(1, 3))
@@ -43,4 +44,3 @@ async def main_bot_function(client: Client, chats: list):
     except Exception as e:
         clear_line()
         logger.error(f"❌ Критическая ошибка в функции рассылки: {e}")
-

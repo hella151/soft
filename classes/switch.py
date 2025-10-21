@@ -263,8 +263,14 @@ class SessionSwitcher:
             async def bot_task_wrapper():
                 while self.is_running and self.clients[session_name]['is_running']:
                     try:
-                        await main_bot_function(self.clients[session_name]['client'], random_chats)
-                        await asyncio.sleep(1)  # Пауза между итерациями
+                        # Передаем cache_manager и session_name в функцию
+                        await main_bot_function(
+                            self.clients[session_name]['client'],
+                            random_chats,
+                            cache_manager=self.cache_manager,
+                            session_name=session_name
+                        )
+                        await asyncio.sleep(1)
                     except asyncio.CancelledError:
                         logger.info(f"⏹️ Задача бота отменена для {session_name}")
                         break
@@ -272,7 +278,6 @@ class SessionSwitcher:
                         logger.error(f"❌ Ошибка в основной функции бота для {session_name}: {e}")
                         await asyncio.sleep(5)
 
-            # ⚡ ИСПРАВЛЕНИЕ: создаем задачу, но НЕ ждем ее завершения
             task = asyncio.create_task(bot_task_wrapper())
             self.bot_tasks[session_name] = task
 
@@ -297,8 +302,31 @@ class SessionSwitcher:
             del self.bot_tasks[session_name]
             logger.info(f"⏹️ Основная функция бота остановлена для {session_name}")
 
+    @staticmethod
+    def handle_flood_wait():
+        def decorator(func):
+            async def wrapper(*args, **kwargs):
+                for attempt in range(3):
+                    try:
+                        return await func(*args, **kwargs)
+                    except RPCError as rpc_error:
+                        logger.error(f"⚠️ RPCError:  {rpc_error} (попытка {attempt + 1}/{3}) ждём пару секунд")
+                        await asyncio.sleep(2)
+                    except FloodWait as e:
+                        wait_time = e.value
+                        logger.error(f"⚠️ FloodWait: Ждем {wait_time} секунд (попытка {attempt + 1}/{3})")
+                        await asyncio.sleep(wait_time)
+                    except Exception as e:
+                        logger.error(f"❌ Другая ошибка: {e}")
+                        break
+                return None
+            return wrapper
+        return decorator
+
+    @handle_flood_wait()
     async def leave_me_channels(self, session_name):
         """Выход из чатов для конкретной сессии"""
+        global chat_title
         if not self.clients[session_name]['active'] or not self.is_running:
             logger.warning("❌ Сессия не активна")
             return
@@ -326,32 +354,28 @@ class SessionSwitcher:
             if a.strip().lower() == 'y':
                 for chat_id in self.clients[session_name]['chats']:
                     try:
+                        chat_title = self.cache_manager.get_chat_title(session_name, "leave", chat_id)
                         if str(chat_id).startswith('-100'):
                             await client.leave_chat(chat_id)
-                            logger.info(f"✅ Успешно вышли из: {chat_id}")
+                            logger.info(f"✅ Успешно вышли из: {chat_title}")
                         else:
                             await client.invoke(
                                 functions.messages.DeleteHistory(peer=await client.resolve_peer(chat_id), max_id=0,
                                                                  revoke=True))
-                            logger.info(f"✅ Успешно удалили чат: {chat_id}")
-                        await asyncio.sleep(1)
-                    except RPCError as rpc_error:
-                        logger.error(f"🔴 RPC ошибка в чате {chat_id}: {rpc_error}")
-                        logger.error("Перезапустите функцию или сам софт")
-                        continue
+                            logger.info(f"✅ Успешно удалили чат: {chat_title}")
+                        await asyncio.sleep(3)
+
                     except Exception as ex:
-                        logger.error(f"❌ Ошибка выхода из {chat_id}: {ex}")
-                        continue
-                    except FloodWait as e:
-                        logger.error(f"⏳ Floodwait {e.value} секунд для чата {chat_id}")
-                        await asyncio.sleep(e.value)
+                        logger.error(f"❌ Ошибка выхода из {chat_title, chat_id}: {ex}")
                         continue
                 self.cache_manager.clear_cache(session_name=session_name, cache_type="leave")
+                self.cache_manager.clear_cache(session_name=session_name, cache_type="mailing")
             else:
                 logger.info("❌ Выход отменен")
         finally:
             await self.unblock_session_switching(session_name)
 
+    # В методе search_me_channels замените:
     async def search_me_channels(self, session_name, type: str):
         """Поиск каналов для сессии"""
         if not self.clients[session_name]['active'] or not self.is_running:
@@ -380,7 +404,11 @@ class SessionSwitcher:
                             if chat.type == ChatType.SUPERGROUP:
                                 try:
                                     if str(chat.id).startswith('-100'):
-                                        chats.append(chat.id)
+                                        # Сохраняем как объект с id и title
+                                        chats.append({
+                                            'id': chat.id,
+                                            'title': chat.title
+                                        })
                                         logger.info(chat.title)
                                     await asyncio.sleep(1)
                                 except Exception as ex:
@@ -399,25 +427,30 @@ class SessionSwitcher:
 
                             if chat.type:
                                 try:
-                                    chats.append(chat.id)
+                                    # Сохраняем как объект с id и title
+                                    chat_data = {'id': chat.id}
                                     if chat.title:
+                                        chat_data['title'] = chat.title
                                         logger.info(chat.title)
                                     else:
+                                        chat_data['title'] = chat.first_name
                                         logger.info(chat.first_name)
+                                    chats.append(chat_data)
                                     await asyncio.sleep(1)
                                 except Exception as ex:
                                     print_clear(f'❌ Ошибка {ex}')
                             processed_chats.add(chat.id)
 
                     self.cache_manager.save_chats(session_name=session_name, cache_type=type, chats=chats)
-                    return chats
+                    return [chat['id'] for chat in chats]  # Возвращаем только ID для обратной совместимости
                 except Exception as e:
                     logger.warning(f"Ошибка поиска каналов для {session_name}: {e}")
                     return []
             else:
-                for i in cached_chats:
-                    print(i)
-                return cached_chats
+                # cached_chats теперь словарь {id: title}, возвращаем ключи (ID)
+                for chat_id, title in cached_chats.items():
+                    print(f"{chat_id}: {title}")
+                return list(cached_chats.keys())  # Возвращаем только ID для обратной совместимости
         finally:
             await self.unblock_session_switching(session_name)
 
