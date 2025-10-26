@@ -83,6 +83,8 @@ class AsyncConsoleManager:
             await self.handle_stop()
         elif cmd == 'search':
             await self.handle_search()
+        elif cmd == 'search_me':
+            await self.session_switcher.search_me_channels(session_name=self.session_switcher.current_session, type="mailing")
         elif cmd == 'me':
             await self.handle_me()
         elif cmd == 'status':

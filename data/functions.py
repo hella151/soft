@@ -20,7 +20,9 @@ def clear_line():
     """Очистка текущей строки"""
     sys.stdout.write('\r\033[K')
     sys.stdout.flush()
-def handle_flood_wait():
+
+
+def handle_rcp():
     def decorator(func):
         async def wrapper(*args, **kwargs):
             for attempt in range(3):
@@ -37,37 +39,45 @@ def handle_flood_wait():
                     logger.error(f"❌ Другая ошибка: {e}")
                     break
             return None
+
         return wrapper
+
     return decorator
 
-@handle_flood_wait()
-async def mess_to_chat(message_text: str, client, chats_id, cache_manager=None, session_name=None):
-    global chat, chat_title
-    if not chats_id:
+
+@handle_rcp()
+async def mess_to_chat(message_text: str, client, chats_data, cache_manager=None, session_name=None, settings=None):
+    """Отправка сообщения в чат с поддержкой кэша"""
+    if not chats_data:
         logger.warning("📭 Список чатов пуст")
         return
 
-    async for chat_id in async_generator(chats_id):
+    # Проверяем, что сообщение не пустое
+    if not message_text or not message_text.strip():
+        logger.error("❌ Пустое сообщение, пропускаем отправку")
+        return
+
+    async for chat_data in async_generator(chats_data):
         clear_line()
         try:
+            # Получаем данные чата из переданной структуры
+            chat_id = chat_data['id']
+            chat_title = chat_data.get('title', 'Unknown')
+
             # Проверяем валидность chat_id
             if not chat_id or not isinstance(chat_id, (int, str)):
                 logger.error(f"❌ Неверный chat_id: {chat_id}")
                 continue
 
-            # Пытаемся получить название из кэша
-            chat_title = None
-            if cache_manager and session_name:
-                chat_title = cache_manager.get_chat_title(session_name, "mailing", chat_id)
-
-            # Если нет в кэше, делаем запрос к API
-            if not chat_title:
-                try:
-                    chat = await client.get_chat(chat_id)
-                    chat_title = getattr(chat, 'title', 'Unknown')
-                except Exception as e:
-                    logger.error(f"❌ Ошибка получения информации о чате {chat_id}: {e}")
-                    chat_title = "Unknown"
+            # Проверяем валидность peer
+            try:
+                peer = await client.resolve_peer(chat_id)
+                if not peer:
+                    logger.error(f"❌ Не удалось разрешить peer для чата: {chat_title}")
+                    continue
+            except Exception as e:
+                logger.error(f"❌ Ошибка разрешения peer для {chat_title}: {e}")
+                continue
 
             # Проверяем действие перед отправкой
             await client.send_chat_action(
@@ -75,9 +85,6 @@ async def mess_to_chat(message_text: str, client, chats_id, cache_manager=None, 
                 action=enums.ChatAction.TYPING
             )
             await asyncio.sleep(1)
-
-            # Отправляем сообщение
-            peer = await client.resolve_peer(chat_id)
 
             # Отправляем сообщение через raw метод
             await client.invoke(
@@ -109,7 +116,7 @@ async def mess_to_chat(message_text: str, client, chats_id, cache_manager=None, 
             continue
 
         except ValueError as e:
-            logger.error(f"❌ Неверный аргумент: {e.args, e}")
+            logger.error(f"❌ Неверный аргумент: {e}")
             continue
 
         except RPCError as e:
@@ -121,4 +128,4 @@ async def mess_to_chat(message_text: str, client, chats_id, cache_manager=None, 
             continue
 
         # Случайная задержка между сообщениями
-        await asyncio.sleep(10 + random.randint(1, 5))
+        await asyncio.sleep(settings['time_per_message'] + random.randint(1, 5))

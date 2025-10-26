@@ -1,13 +1,13 @@
-2025-10-20 18:49:55,339 - pyrogram_bot - INFO - 🔒 Блокировка переключения для account_1 (операция: console_search)
-2025-10-20 18:49:55,339 - pyrogram_bot - INFO - Найденные чаты:
-2025-10-20 18:49:55,581 - pyrogram_bot - INFO - 1: 👥 Channel: Взаимные подписки 🩷 реакции: -1002029765485: chatik_piarvz: 178167
-2025-10-20 18:49:55,581 - pyrogram_bot - INFO - 2: 👥 Channel: Взаимные подписки ❤️ Реакции Пиар тг вп: -1001736935302: chatikvztg: 144783
-2025-10-20 18:49:55,581 - pyrogram_bot - INFO - 3: 👥 Channel: Взаимная подписка 🐾 реакции: -1002460184156: vzaimnye_podpiskye: 127738
-2025-10-20 18:49:55,581 - pyrogram_bot - INFO - 4: 👥 Channel: ВЗАИМНЫЕ ПОДПИСКИ: -1002154222425: schatik_spiarss: 161997
-2025-10-20 18:49:55,582 - pyrogram_bot - INFO - 5: 👥 Channel: Взаимные подписки знакомства: -1002498137752: Naity_8: 32041
-2025-10-20 18:49:55,582 - pyrogram_bot - INFO - 6: 👥 Channel: Взаимные подписки 💚 Реакции,Пиар Чат: -1002056430160: podpisky_vzaimnye: 15092
-2025-10-20 18:49:55,582 - pyrogram_bot - INFO - 7: 👥 Channel: ВЗАИМНЫЕ ПОДПИСКИ # Реакции # Пиар: -1001641074554: vzaimnye_podpiski: 712
-2025-10-20 18:49:55,582 - pyrogram_bot - INFO - 8: 👥 Channel: Группа для общения: -1002060069002: vzaimnye_podpiskyu: 15249
-2025-10-20 18:49:55,748 - pyrogram_bot - INFO - ⏳ Ожидание завершения операции 'console_search' в сессии account_1 (0.4 сек.)
-2025-10-20 18:49:57,491 - pyrogram_bot - INFO - 🔓 Разблокировка переключения для account_1 (операция длилась: 2.2 сек.)
-2025-10-20 18:50:08,241 - pyrogram_bot - INFO - 👋 Программа завершена по Ctrl+C
+2025-10-24 21:36:37,058 - pyrogram_bot - INFO - ✅ Настройки загружены из: D:\projects\PythonProject\first_soft\settings.txt
+2025-10-24 21:36:55,150 - pyrogram_bot - INFO - 🤖 Основная функция бота запущена
+2025-10-24 21:36:55,150 - pyrogram_bot - INFO - 🔒 Блокировка переключения для account_3 (операция: search_mailing)
+2025-10-24 21:36:55,150 - pyrogram_bot - INFO - 🔓 Разблокировка переключения для account_3 (операция длилась: 0.0 сек.)
+2025-10-24 21:36:55,150 - pyrogram_bot - INFO - 🎲 Выбрано 5 случайных чатов из 9
+2025-10-24 21:36:55,151 - pyrogram_bot - INFO - 🤖 Запуск основной функции бота для account_3...
+2025-10-24 21:36:55,151 - pyrogram_bot - ERROR - ❌ Ошибка разрешения peer для ВЗАИМНЫЕ ПОДПИСКИ # Реакции # Пиар: Telegram says: [400 PEER_ID_INVALID]  Pyrogram 2.2.9 thinks: The peer id being used is invalid or not known yet. Make sure you meet the peer before interacting with it
+2025-10-24 21:36:56,607 - pyrogram_bot - INFO - ✅ Отправлено сообщение в чат -> Чат Взаимные подписки, реакции и помощь друг другу
+2025-10-24 21:37:17,988 - pyrogram_bot - INFO - ✅ Отправлено сообщение в чат -> Взаимная подписка 💋 подписки
+2025-10-24 21:37:21,070 - pyrogram_bot - INFO - 🛑 Бот остановлен по команде
+2025-10-24 21:37:22,080 - pyrogram_bot - INFO - ⏹️ Основная функция бота остановлена для account_3
+2025-10-24 21:37:22,080 - pyrogram_bot - INFO - 🤖 Основная функция бота остановлена
+2025-10-24 21:37:41,464 - pyrogram_bot - INFO - 👋 Программа завершена по Ctrl+C

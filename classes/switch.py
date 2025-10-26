@@ -4,6 +4,7 @@ from cache import TelegramCache
 from data import main_bot_function
 from pyrogram.enums import ChatType
 from . import AsyncConsoleManager
+from settings import Settings
 from pyrogram.raw import functions, types
 from pyrogram.errors import FloodWait, RPCError
 from handlers import all_handlers
@@ -42,6 +43,9 @@ class SessionSwitcher:
         # Новые флаги для блокировки переключения
         self.block_switching_sessions = set()  # Сессии, которые блокируют переключение
         self.block_switching_operations = {}  # Информация о блокирующих операциях
+        self.settings = Settings()
+        self.settings.load_config()  # Загружаем конфигурацию
+        self.config = self.settings.config
 
     async def setup_session(self, name, session_string, work_time=300):
         """Создаем и настраиваем сессию"""
@@ -246,6 +250,7 @@ class SessionSwitcher:
 
         try:
             if not self.clients[session_name]['chats']:
+                # Теперь получаем полные данные чатов (с id и title)
                 self.clients[session_name]['chats'] = await self.search_me_channels(session_name, type="mailing")
 
             all_chats = self.clients[session_name]['chats']
@@ -266,9 +271,10 @@ class SessionSwitcher:
                         # Передаем cache_manager и session_name в функцию
                         await main_bot_function(
                             self.clients[session_name]['client'],
-                            random_chats,
+                            random_chats,  # Теперь передаем полные данные чатов
                             cache_manager=self.cache_manager,
-                            session_name=session_name
+                            session_name=session_name,
+                            settings=self.config
                         )
                         await asyncio.sleep(1)
                     except asyncio.CancelledError:
@@ -303,7 +309,7 @@ class SessionSwitcher:
             logger.info(f"⏹️ Основная функция бота остановлена для {session_name}")
 
     @staticmethod
-    def handle_flood_wait():
+    def handle_rcp():
         def decorator(func):
             async def wrapper(*args, **kwargs):
                 for attempt in range(3):
@@ -323,7 +329,7 @@ class SessionSwitcher:
             return wrapper
         return decorator
 
-    @handle_flood_wait()
+    @handle_rcp()
     async def leave_me_channels(self, session_name):
         """Выход из чатов для конкретной сессии"""
         global chat_title
@@ -442,15 +448,17 @@ class SessionSwitcher:
                             processed_chats.add(chat.id)
 
                     self.cache_manager.save_chats(session_name=session_name, cache_type=type, chats=chats)
-                    return [chat['id'] for chat in chats]  # Возвращаем только ID для обратной совместимости
+                    # ВОЗВРАЩАЕМ ПОЛНЫЕ ДАННЫЕ, А НЕ ТОЛЬКО ID
+                    return chats
                 except Exception as e:
                     logger.warning(f"Ошибка поиска каналов для {session_name}: {e}")
                     return []
             else:
-                # cached_chats теперь словарь {id: title}, возвращаем ключи (ID)
+                # cached_chats теперь словарь {id: title}, преобразуем в список словарей
+                chat_list = [{'id': chat_id, 'title': title} for chat_id, title in cached_chats.items()]
                 for chat_id, title in cached_chats.items():
                     print(f"{chat_id}: {title}")
-                return list(cached_chats.keys())  # Возвращаем только ID для обратной совместимости
+                return chat_list
         finally:
             await self.unblock_session_switching(session_name)
 

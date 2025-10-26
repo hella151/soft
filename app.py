@@ -36,7 +36,7 @@ async def main():
     switcher = SessionSwitcher()
 
     for i, session_string in enumerate(session_strings, 1):
-        await switcher.setup_session(f"account_{i}", session_string, 180)
+        await switcher.setup_session(f"account_{i}", session_string, switcher.config['delay_between_sessions'])
 
     print_clear("💬 Команды: help - показать все команды")
     print_clear("=" * 50)
