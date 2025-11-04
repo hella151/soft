@@ -1,1 +1,1 @@
-from .search import search_chats_raw, is_member
+from .search import search_chats_raw

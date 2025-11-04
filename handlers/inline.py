@@ -4,6 +4,7 @@ from pyrogram import Client
 from pyrogram import filters
 from pyrogram.types import Message
 import sys
+from pyrogram.errors import FloodWait
 
 
 def clear_line():
@@ -35,6 +36,11 @@ async def catch_callback_urls(client: Client, message: Message):
                 await client.join_chat(chat_id=(url))
                 await asyncio.sleep(3)
                 logger.info(f"зашли в {url}")
+            except FloodWait as e:
+                logger.warning(f"Ждём {e.value} секунд, перед тем как снова входить в группы, есть риск получить бан")
+                await asyncio.sleep(e.value)
+                return
+
             except Exception as ex:
                 logger.error(f"не получилось присоединится: {ex}")
     else:

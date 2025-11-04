@@ -7,7 +7,7 @@ time_per_message=15
 messages_per_cycle=5
 
 # Задержка в секундах в цикле за один шаг (обязательно больше 10)
-delay_between_messages=60
+delay_between_messages=30
 
 # Задержка в секундах между переключением сессий (чем меньше чем сессии быстрее меняются)
-delay_between_sessions=120
+delay_between_sessions=180

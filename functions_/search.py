@@ -7,21 +7,6 @@ from pyrogram.raw import functions
 from pyrogram.errors import UserNotParticipant, ChannelPrivate, ChatAdminRequired
 from data.log import logger
 
-async def is_member(client: Client, chat_id):
-    """Проверяет, является ли пользователь участником чата"""
-    try:
-        await client.get_chat_member(chat_id=chat_id, user_id="me")
-        return True
-    except UserNotParticipant:
-        return False  # Не участник
-    except ChannelPrivate:
-        return False  # Приватный канал, нет доступа
-    except ChatAdminRequired:
-        return False  # Нет прав администратора
-    except Exception as e:
-        logger.error(f"❌ Ошибка проверки: {e}")
-        return False
-
 def handle_flood_wait(retries=3):
     def decorator(func):
         async def wrapper(*args, **kwargs):
@@ -67,8 +52,10 @@ async def search_chats_raw(client: Client, query) -> List:
                 'podpischiki': getattr(chat, 'participants_count', '')
             }
 
-            chats.append(chat_info)
-            logger.info(f"{cnt}: 👥 {type(chat).__name__}: {chat_info['title']}: {chat_info['id']}: {chat_info['username']}: {chat_info['podpischiki']}")
+            if chat_info['podpischiki'] >= 2000:
+                chats.append(chat_info)
+                logger.info(f"{cnt}: 👥 {type(chat).__name__}: {chat_info['title']}: {chat_info['id']}: {chat_info['username']}: {chat_info['podpischiki']}")
+
 
         return chats
 

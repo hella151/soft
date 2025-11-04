@@ -149,3 +149,77 @@ class TelegramCache:
                         print_clear(f"❌ Ошибка удаления {file}: {e}")
 
         print_clear(f"✅ Кэш удалён для {session_name, cache_type}")
+
+    def remove_chat_from_cache(self, session_name, cache_type, chat_id):
+        """Удаляет конкретный чат из кэша"""
+        cache_file = self._get_cache_path(session_name, cache_type)
+
+        if not os.path.exists(cache_file):
+            return False
+
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+
+            chats_dict = cache_data.get('chats', {})
+
+            # Удаляем чат из словаря
+            chat_id_str = str(chat_id)
+            if chat_id_str in chats_dict:
+                removed_title = chats_dict.pop(chat_id_str)
+
+                # Обновляем timestamp
+                cache_data['timestamp'] = datetime.now().isoformat()
+                cache_data['chats'] = chats_dict
+
+                # Сохраняем обновленный кэш
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump(cache_data, f, ensure_ascii=False, indent=2)
+
+                print_clear(f"🗑 Удален из кэша {cache_type}: {removed_title} (ID: {chat_id})")
+                return True
+            else:
+                return False
+
+        except Exception as e:
+            print_clear(f"❌ Ошибка удаления чата из кэша: {e}")
+            return False
+
+    def remove_chats_from_cache(self, session_name, cache_type, chat_ids):
+        """Удаляет несколько чатов из кэша"""
+        cache_file = self._get_cache_path(session_name, cache_type)
+
+        if not os.path.exists(cache_file):
+            return 0
+
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+
+            chats_dict = cache_data.get('chats', {})
+            removed_count = 0
+
+            # Удаляем чаты из словаря
+            for chat_id in chat_ids:
+                chat_id_str = str(chat_id)
+                if chat_id_str in chats_dict:
+                    removed_title = chats_dict.pop(chat_id_str)
+                    removed_count += 1
+                    print_clear(f"🗑 Удален из кэша {cache_type}: {removed_title} (ID: {chat_id})")
+
+            if removed_count > 0:
+                # Обновляем timestamp
+                cache_data['timestamp'] = datetime.now().isoformat()
+                cache_data['chats'] = chats_dict
+
+                # Сохраняем обновленный кэш
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump(cache_data, f, ensure_ascii=False, indent=2)
+
+                print_clear(f"✅ Удалено {removed_count} чатов из кэша {cache_type}")
+
+            return removed_count
+
+        except Exception as e:
+            print_clear(f"❌ Ошибка удаления чатов из кэша: {e}")
+            return 0

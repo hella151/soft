@@ -16,30 +16,30 @@ def print_clear(*args, **kwargs):
     print(*args, **kwargs)
 
 
-def get_session_strings(filename="data/sessions/sessions.json"):
-    with open(filename, 'r') as file:
-        return [session['session_string'] for session in json.load(file)]
+def get_sessions(filename="data/sessions/sessions.json"):
+    with open(filename, 'r', encoding='utf-8') as file:
+        return [session for session in json.load(file)]
 
 async def main():
     disable_pyrogram_logs()
     try:
-        session_strings = get_session_strings()
-        print_clear(f"📁 Загружено {len(session_strings)} сессий")
+        sessions = get_sessions()
+        print_clear(f"📁 Загружено {len(sessions)} сессий")
     except Exception as e:
         print_clear(f"❌ Ошибка загрузки: {e}")
         return
 
-    if not session_strings:
+    if not sessions:
         print_clear("❌ Нет сессий!")
         return
 
     switcher = SessionSwitcher()
-
-    for i, session_string in enumerate(session_strings, 1):
-        await switcher.setup_session(f"account_{i}", session_string, switcher.config['delay_between_sessions'])
+    for session in sessions:
+        await switcher.setup_session(f"{session['first_name']}", session['session_string'], switcher.config['delay_between_sessions'])
 
     print_clear("💬 Команды: help - показать все команды")
-    print_clear("=" * 50)
+    print_clear("Доступные команды для набора в личные сообщения аккаунта: /time, /next, /status, /list, /force_stop, /force_switch")
+    print_clear("-" * 40)
 
     try:
         await switcher.start_all()

@@ -9,7 +9,7 @@ class Settings:
             "time_per_message": 15,
             "messages_per_cycle": 5,
             "delay_between_messages": 60,
-            "delay_between_sessions": 120
+            "delay_between_sessions": 30
         }
         self.config = self.default_config.copy()
         self.settings_path = self._get_settings_path()

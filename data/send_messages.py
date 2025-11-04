@@ -12,7 +12,7 @@ def clear_line():
     sys.stdout.flush()
 
 
-async def main_bot_function(client: Client, chats: list, cache_manager=None, session_name=None, settings=None):
+async def main_bot_function(client: Client, chats: list, cache_manager=None, session_name=None, settings=None, session_switcher=None):
     """Основная функция работы бота с поддержкой кэша"""
     try:
         with open('text.txt', 'r', encoding='utf-8') as file:
@@ -41,12 +41,13 @@ async def main_bot_function(client: Client, chats: list, cache_manager=None, ses
                 chats_data=chats,
                 cache_manager=cache_manager,
                 session_name=session_name,
-                settings=settings
+                settings=settings,
+                session_switcher=session_switcher
             )
 
+            logger.info(f"📊 цикл: {n + 1} завершён")
             await asyncio.sleep(settings['delay_between_messages'] + random.randint(1, 3))
 
-            logger.info(f"📊 цикл: {n + 1}")
             n += 1
 
     except asyncio.CancelledError:
