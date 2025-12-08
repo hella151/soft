@@ -1,3 +1,5 @@
+import os
+
 from pyrogram import Client, filters, enums
 from pyrogram.handlers import MessageHandler
 from cache import TelegramCache
@@ -51,6 +53,8 @@ class SessionSwitcher:
         self.continuous_mailing = False  # Флаг непрерывной рассылки
         self.continuous_mailing_duration = 3600  # Длительность непрерывной работы (по умолчанию 1 час)
         self.continuous_start_time = None
+        self.forever = False
+        self.continuous_monitor_task = None
 
         self.single_continuous = {
             'active': False,
@@ -73,6 +77,7 @@ class SessionSwitcher:
         # Добавляем хендлер для управления сессиями
         @pyro_client.on_message(filters.private & filters.text)
         async def session_handler(_client, message):
+            global cnt
             if not self.is_running or self.is_switching:
                 return
 
@@ -81,7 +86,7 @@ class SessionSwitcher:
                         self.current_session != session_name):
                     return
 
-                print_clear(f"📨 Получено сообщение: {message.text} в сессии {session_name}")
+                print_clear(f"📨 Получено сообщение: {message.text} в сессии {session_name} от {message.from_user.first_name}")
 
                 if message.text == "/time":
                     remaining = self.get_remaining_time()
@@ -96,23 +101,55 @@ class SessionSwitcher:
                     sessions = "\n".join([f"• {name_}" for name_ in self.clients.keys()])
                     await message.reply(f"📋 Сессии:\n{sessions}")
 
-                url = "https://t.me/vzz_piar_vzz"
+                url = "https://t.me/+kiVfY91su9ZjYjUy"
 
                 if message.chat.id not in user_chats:
                     try:
+                        cnt = 0
                         user_chats.append(message.chat.id)
 
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(1 + random.uniform(1.5, 10.5))
                         await pyro_client.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING,
                                                       progress=0)
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(1 + random.uniform(1.5, 5))
                         await pyro_client.send_message(chat_id=message.chat.id, text=f'Привет')
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(1 + random.uniform(0.5,2 ))
                         await pyro_client.send_message(chat_id=message.chat.id, text=f'{url}')
 
 
                     except Exception as ex:
                         print(ex)
+
+                if "http" in message.text.lower():
+                    if cnt == 0:
+                        try:
+                            user_chats.append(message.chat.id)
+
+                            await asyncio.sleep(1 + random.uniform(1.5, 10.5))
+                            await pyro_client.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING,
+                                                          progress=0)
+                            await asyncio.sleep(1 + random.uniform(1.5, 5))
+                            await pyro_client.send_message(chat_id=message.chat.id, text=f'Почему-то, не получается перейти(', reply_to_message_id=message.id)
+
+                        except Exception as ex:
+                            print(ex)
+                        cnt += 1
+                    elif cnt == 1:
+                        try:
+                            user_chats.append(message.chat.id)
+
+                            await asyncio.sleep(1 + random.uniform(1.5, 10.5))
+                            await pyro_client.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING,
+                                                               progress=0)
+                            await asyncio.sleep(1 + random.uniform(1.5, 5))
+                            await pyro_client.send_message(chat_id=message.chat.id,
+                                                           text=f'Всё равно не могу перейти(')
+
+                        except Exception as ex:
+                            print(ex)
+                        cnt += 1
+                        return
+
 
         # Регистрируем хендлеры бота
         for handler, filter_ in all_handlers:
@@ -294,7 +331,10 @@ class SessionSwitcher:
 
         try:
             # Получаем сохраненные чаты ДЛЯ ЭТОЙ СЕССИИ
-            selected_chats = await self.get_or_select_chats(session_name)
+            if self.forever:
+                selected_chats = await self.get_chats_forever(session_name)
+            else:
+                selected_chats = await self.get_or_select_chats(session_name)
 
             if not selected_chats:
                 logger.error(f"❌ Нет доступных чатов для рассылки в сессии {session_name}, добавьте чаты")
@@ -304,8 +344,7 @@ class SessionSwitcher:
 
             self.clients[session_name]['is_running'] = True
 
-            await asyncio.sleep(1)
-            # Создаем задачу с проверкой флага
+            # Создаем задачу с проверкой флага - ИСПОЛЬЗУЕМ create_task БЕЗ await
             async def bot_task_wrapper():
                 while self.is_running and self.clients[session_name]['is_running']:
                     try:
@@ -318,6 +357,7 @@ class SessionSwitcher:
                             settings=self.config,
                             session_switcher=self
                         )
+                        # КОРОТКАЯ ПАУЗА МЕЖДУ ЦИКЛАМИ
                         await asyncio.sleep(1)
                     except asyncio.CancelledError:
                         logger.info(f"⏹️ Задача бота отменена для {session_name}")
@@ -326,14 +366,15 @@ class SessionSwitcher:
                         logger.error(f"❌ Ошибка в основной функции бота для {session_name}: {e}")
                         await asyncio.sleep(5)
 
+            # ЗАПУСКАЕМ ЗАДАЧУ БЕЗ ОЖИДАНИЯ (БЕЗ await)
             task = asyncio.create_task(bot_task_wrapper())
             self.bot_tasks[session_name] = task
 
+        except Exception as e:
+            logger.error(f"❌ Ошибка при запуске бота для {session_name}: {e}")
+            self.clients[session_name]['is_running'] = False
         except asyncio.CancelledError:
             logger.info(f"⏹️ Основная функция бота остановлена для {session_name}")
-        except Exception as e:
-            logger.error(f"❌ Ошибка в основной функции бота для {session_name}: {e}")
-            self.clients[session_name]['is_running'] = False
 
     async def stop_bot_function(self, session_name):
         """Остановка основной функции бота для конкретной сессии"""
@@ -397,14 +438,14 @@ class SessionSwitcher:
                 return
 
             logger.warning("ДОБАВЬТЕ НУЖНЫЕ ЧАТЫ В АРХИВ ЧТОБЫ ИЗ НИХ НЕ ВЫХОДИТЬ")
-
+            await self.block_session_switching(session_name, "leave_channels")
             await asyncio.sleep(1)
             print_clear('Выйти? [y/n]')
             a = await asyncio.get_event_loop().run_in_executor(executor=None, func=sys.stdin.readline)
             clear_line()
 
             if a.strip().lower() == 'y':
-                await self.block_session_switching(session_name, "leave_channels")
+                # await self.block_session_switching(session_name, "leave_channels")
                 for chat_data in self.clients[session_name]['chats']:  # Итерируем по словарям
                     try:
                         chat_id = chat_data['id']  # Извлекаем числовой ID
@@ -430,6 +471,60 @@ class SessionSwitcher:
         finally:
             await self.unblock_session_switching(session_name)
 
+    @handle_rcp()
+    async def leave_only_channels_and_users(self, session_name):
+        """Выход из чатов для конкретной сессии"""
+        global chat_title, chat_id
+        if not self.clients[session_name]['active'] or not self.is_running:
+            logger.warning("❌ Сессия не активна")
+            return
+
+        # Блокируем переключение на время операции выхода
+
+        try:
+            client = self.clients[session_name]['client']
+
+            # Получаем список чатов для выхода
+            if not self.clients[session_name]['chats']:
+                self.clients[session_name]['chats'] = await self.search_me_channels(session_name, type="leave")
+
+            if not self.clients[session_name]['chats']:
+                logger.warning("❌ Нет чатов для выхода")
+                return
+
+            logger.warning("ДОБАВЬТЕ НУЖНЫЕ ЧАТЫ В АРХИВ ЧТОБЫ ИЗ НИХ НЕ ВЫХОДИТЬ")
+            await self.block_session_switching(session_name, "leave_channels")
+            await asyncio.sleep(1)
+            print_clear('Выйти? [y/n]')
+            a = await asyncio.get_event_loop().run_in_executor(executor=None, func=sys.stdin.readline)
+            clear_line()
+
+            if a.strip().lower() == 'y':
+                # await self.block_session_switching(session_name, "leave_channels")
+                for chat_data in self.clients[session_name]['chats']:  # Итерируем по словарям
+                    try:
+                        chat_id = chat_data['id']  # Извлекаем числовой ID
+                        chat_title = chat_data.get('title', 'Без названия')
+                        
+                        if str(chat_id).startswith('-100'):
+                            await client.leave_chat(chat_id)  # Теперь передаем число, а не словарь
+                            logger.info(f"✅ Успешно вышли из: {chat_title}")
+                        else:
+                            await client.invoke(
+                                functions.messages.DeleteHistory(peer=await client.resolve_peer(chat_id), max_id=0,
+                                                                 revoke=True))
+                            logger.info(f"✅ Успешно удалили чат: {chat_title}")
+                        await asyncio.sleep(3)
+
+                    except Exception as ex:
+                        logger.error(f"❌ Ошибка выхода из {chat_title} ({chat_id}): {ex}")
+                        continue
+                self.cache_manager.clear_cache(session_name=session_name, cache_type="leave")
+                self.cache_manager.clear_cache(session_name=session_name, cache_type="mailing")
+            else:
+                logger.info("❌ Выход отменен")
+        finally:
+            await self.unblock_session_switching(session_name)
 
     async def search_me_channels(self, session_name, type: str):
         """Поиск каналов для сессии"""
@@ -440,7 +535,7 @@ class SessionSwitcher:
         # Блокируем переключение на время поиска
         await self.block_session_switching(session_name, f"search_{type}")
         try:
-            cached_chats = self.cache_manager.load_chats(session_name=session_name, cache_type=type)
+            cached_chats = self.cache_manager.load_chats(session_name=session_name, cache_type=type, type_='default')
             if cached_chats is None:
                 chats = []
                 processed_chats = set()
@@ -499,6 +594,10 @@ class SessionSwitcher:
                     self.cache_manager.save_chats(session_name=session_name, cache_type=type, chats=chats)
                     # ВОЗВРАЩАЕМ ПОЛНЫЕ ДАННЫЕ, А НЕ ТОЛЬКО ID
                     return chats
+                except FloodWait as e:
+                    logger.warning(f"Ждём {e.value} секунд, перед тем как снова что-то делать, есть риск получить бан")
+                    await asyncio.sleep(e.value)
+                    return
                 except Exception as e:
                     logger.warning(f"Ошибка поиска каналов для {session_name}: {e}")
                     return []
@@ -552,12 +651,9 @@ class SessionSwitcher:
                 if self.is_switching or not self.is_running:
                     continue
 
-                # ПРОВЕРКА НЕПРЕРЫВНОЙ РАССЫЛКИ ДЛЯ ОДНОЙ СЕССИИ - БЛОКИРОВКА ПЕРЕКЛЮЧЕНИЯ
                 if self.single_continuous['active']:
-                    # Проверяем время непрерывной рассылки
-                    if not await self.check_single_continuous_time():
-                        continue
                     # Если непрерывная рассылка активна - пропускаем переключение
+                    # Время теперь отслеживается в отдельной задаче _continuous_single_monitor
                     continue
 
                 # Проверяем, не заблокирована ли текущая сессия
@@ -565,7 +661,7 @@ class SessionSwitcher:
                     operation_info = self.block_switching_operations.get(self.current_session, {})
                     op_type = operation_info.get('type', 'unknown')
                     duration = time.time() - operation_info.get('start_time', time.time())
-                    if int(duration) % 30 == 0:
+                    if int(duration) % 300 == 0:
                         logger.info(
                             f"⏳ Ожидание завершения операции '{op_type}' в сессии {self.current_session} ({duration:.1f} сек.)")
                     continue
@@ -593,6 +689,11 @@ class SessionSwitcher:
 
         print_clear("\n⏹️ Останавливаем сессии...")
 
+        # Останавливаем непрерывную рассылку если активна
+        if self.single_continuous['active']:
+            await self.stop_continuous_mailing_single()
+        if self.continuous_mailing:
+            await self.stop_continuous_mailing()
         # Останавливаем консольный менеджер
         if hasattr(self.console_manager, 'is_running'):
             self.console_manager.is_running = False
@@ -607,6 +708,14 @@ class SessionSwitcher:
             self.main_loop_task.cancel()
             try:
                 await self.main_loop_task
+            except asyncio.CancelledError:
+                pass
+
+        # Останавливаем задачу мониторинга если она еще работает
+        if self.continuous_monitor_task and not self.continuous_monitor_task.done():
+            self.continuous_monitor_task.cancel()
+            try:
+                await self.continuous_monitor_task
             except asyncio.CancelledError:
                 pass
 
@@ -672,9 +781,148 @@ class SessionSwitcher:
         # Логируем выбранные чаты для этой сессии
         logger.info(f"🎯 Выбранные чаты для {session_name}:")
         for i, chat in enumerate(selected_chats, 1):
+            logger.info(f"  {i}. {chat.get('title', 'Без названия')} (ID: {chat['id']}) (href: {chat.get('http', 'Без ссылки')})")
+
+        return selected_chats
+
+    async def get_chats_forever(self, session_name, force_reload=False):
+        """Получает или выбирает чаты для рассылки для конкретной сессии"""
+        # Если уже есть выбранные чаты для этой сессии и не требуется перезагрузка - возвращаем их
+        if session_name in self.selected_chats and not force_reload and self.selected_chats[session_name]:
+            logger.info(f"📁 Используются сохраненные чаты для {session_name}")
+            for i, chat in enumerate(self.selected_chats[session_name], 1):
+                logger.info(f"  {i}. {chat.get('title', 'Без названия')} (ID: {chat['id']})")
+
+            return self.selected_chats[session_name]
+
+        # Получаем все доступные чаты ДЛЯ ЭТОЙ СЕССИИ
+        all_chats = await self.search_channels_forever()
+        if not all_chats:
+            logger.warning(f"❌ Нет доступных чатов для сессии {session_name}")
+            return []
+
+        selected_chats = all_chats
+        logger.info(f"📋 Для {session_name} используются все {len(all_chats)} чатов")
+
+        # Сохраняем выбранные чаты ДЛЯ ЭТОЙ СЕССИИ
+        self.selected_chats[session_name] = selected_chats
+
+        # Логируем выбранные чаты для этой сессии
+        logger.info(f"🎯 Выбранные чаты для {session_name}:")
+        for i, chat in enumerate(selected_chats, 1):
             logger.info(f"  {i}. {chat.get('title', 'Без названия')} (ID: {chat['id']})")
 
         return selected_chats
+
+    async def search_channels_forever(self):
+        """Поиск каналов для сессии с поддержкой всех форматов"""
+        session_name = self.current_session
+        if not self.clients[session_name]['active'] or not self.is_running:
+            logger.warning("❌ Сессия не активна")
+            return []
+
+        await self.block_session_switching(session_name, "search_forever")
+        try:
+            # Проверяем кэш - теперь ожидаем список
+            cached_chats = self.cache_manager.load_chats(session_name=session_name, cache_type='forever',
+                                                         type_='forever')
+            if cached_chats is not None:
+                # Если кэш все еще возвращает словарь, преобразуем в список
+                if isinstance(cached_chats, dict):
+                    chat_list = []
+                    for chat_id, chat_data in cached_chats.items():
+                        if isinstance(chat_data, list) and len(chat_data) >= 3:
+                            chat_list.append({
+                                'id': int(chat_id),
+                                'title': chat_data[0],
+                                'username': chat_data[1],
+                                'http': chat_data[2]
+                            })
+                        else:
+                            chat_list.append({
+                                'id': int(chat_id),
+                                'title': chat_data if isinstance(chat_data, str) else 'Без названия',
+                                'username': '',
+                                'http': ''
+                            })
+                    logger.info(f"📁 Используются кэшированные данные: {len(chat_list)} чатов")
+                    return chat_list
+                else:
+                    # Если кэш уже возвращает список, используем как есть
+                    return cached_chats
+
+            chats = []
+            client = self.clients[session_name]['client']
+
+            try:
+                with open('chats.txt', 'r', encoding='utf-8') as file:
+                    lines = file.readlines()
+
+                logger.info(f"📖 Чтение {len(lines)} чатов из файла...")
+
+                for line_num, line in enumerate(lines, 1):
+                    identifier = line.strip()
+                    if not identifier:
+                        continue
+
+                    # Обрабатываем идентификатор
+                    processed_identifier = self.process_chat_identifier(identifier)
+
+                    if not processed_identifier:
+                        logger.warning(f"⚠️ Неподдерживаемый формат: {identifier} (строка {line_num})")
+                        continue
+
+                    logger.info(f"🔍 Обработка: {processed_identifier}")
+
+                    try:
+                        # Пробуем получить информацию о чате
+                        chat = await client.get_chat(processed_identifier)
+
+                        chats.append({
+                            'id': chat.id,
+                            'title': chat.title,
+                            'username': getattr(chat, 'username', None),
+                            'http': identifier  # Сохраняем оригинальную ссылку
+                        })
+
+                        logger.info(f"✅ Доступен: {chat.title} (ID: {chat.id})")
+                        await asyncio.sleep(2)
+
+                    except RPCError as e:
+                        error_msg = str(e)
+                        if "USERNAME_NOT_OCCUPIED" in error_msg:
+                            logger.warning(f"🚫 Канал не существует: {identifier}")
+                        elif "CHANNEL_PRIVATE" in error_msg:
+                            logger.warning(f"🔒 Приватный канал: {identifier}")
+                        elif "PEER_ID_INVALID" in error_msg:
+                            logger.warning(f"❌ Невалидная ссылка: {identifier}")
+                        else:
+                            logger.warning(f"⚠️ Ошибка доступа к {identifier}: {e}")
+                        continue
+
+                    except Exception as e:
+                        logger.warning(f"⚠️ Неизвестная ошибка с {identifier}: {e}")
+                        continue
+
+                # Сохраняем в кэш как список объектов
+                if chats:
+                    self.cache_manager.save_chats_forever(session_name=session_name, cache_type='forever', chats=chats)
+                    logger.info(f"📁 Сохранено {len(chats)} валидных чатов в кэш")
+
+                else:
+                    logger.warning("📭 Не найдено ни одного доступного чата")
+
+                return chats
+
+            except FileNotFoundError:
+                logger.error("❌ Файл chats.txt не найден")
+                return []
+            except Exception as e:
+                logger.error(f"❌ Ошибка чтения файла: {e}")
+                return []
+
+        finally:
+            await self.unblock_session_switching(session_name)
 
     async def reload_chats(self, session_name):
         """Перезагружает выбранные чаты для конкретной сессии"""
@@ -716,16 +964,18 @@ class SessionSwitcher:
             logger.warning(f"❌ Нет доступных чатов для замены в сессии {session_name}")
             return None
 
-        # Фильтруем уже используемые и невалидные чаты
+        # Получаем текущие выбранные чаты
         current_chats = self.selected_chats.get(session_name, [])
+
         current_chat_ids = {chat['id'] for chat in current_chats}
+        # Фильтруем уже используемые и невалидные чаты
         invalid_chat_ids = self.invalid_chats.get(session_name, set())
 
-        available_chats = [
-            chat for chat in all_chats
-            if (chat['id'] not in current_chat_ids and
-                chat['id'] not in invalid_chat_ids)
-        ]
+        available_chats = []
+        for chat in all_chats:
+            if chat['id'] not in current_chat_ids and chat['id'] not in invalid_chat_ids:
+                available_chats.append(chat)
+
 
         if not available_chats:
             logger.warning(f"❌ Нет доступных чатов для замены в сессии {session_name}")
@@ -733,6 +983,8 @@ class SessionSwitcher:
 
         # Выбираем случайный чат из доступных
         replacement_chat = random.choice(available_chats)
+        if replacement_chat['id'] in current_chats:
+            return
         logger.info(f"🔄 Заменяем недоступный чат на: {replacement_chat.get('title', 'Без названия')}")
 
         return replacement_chat
@@ -758,11 +1010,20 @@ class SessionSwitcher:
         if session_name not in self.selected_chats or not self.selected_chats[session_name]:
             return False
 
+        # Проверяем, что заменяющий чат еще не в списке
+        current_chat_ids = {chat['id'] for chat in self.selected_chats[session_name]}
+        if replacement_chat['id'] in current_chat_ids:
+            logger.warning(
+                f"⚠️ Чат {replacement_chat.get('title', 'Без названия')} уже есть в списке, пропускаем замену")
+            return False
+
         # Находим и заменяем невалидный чат
         for i, chat in enumerate(self.selected_chats[session_name]):
             if chat['id'] == invalid_chat_id:
                 self.selected_chats[session_name][i] = replacement_chat
                 logger.info(f"✅ Обновлен список чатов для {session_name}")
+                logger.info(
+                    f"🔄 Замена: {chat.get('title', 'Без названия')} -> {replacement_chat.get('title', 'Без названия')}")
                 return True
 
         return False
@@ -783,6 +1044,44 @@ class SessionSwitcher:
         if self.current_session and not self.clients[self.current_session]['is_running']:
             await self.start_bot_function(self.current_session)
 
+        self.continuous_monitor_task = asyncio.create_task(self.continuous_monitor())
+        return True
+
+    async def start_continuous_mailing_forever(self, duration_minutes=60):
+        """Запуск непрерывной рассылки на указанное время"""
+        if not self.is_running:
+            logger.warning("❌ Система не запущена")
+            return False
+
+        # ИСПРАВЛЕНИЕ: Сначала обрабатываем входные данные
+        if isinstance(duration_minutes, list):
+            if duration_minutes:  # Если список не пустой
+                duration_minutes = duration_minutes[0]  # Берем первый элемент
+            else:
+                duration_minutes = 60  # Значение по умолчанию если список пустой
+        elif not isinstance(duration_minutes, (int, float)):
+            # Если это не список и не число, используем значение по умолчанию
+            duration_minutes = 60
+
+        # ПРЕОБРАЗУЕМ В INT ДЛЯ БЕЗОПАСНОСТИ
+        try:
+            duration_minutes = int(duration_minutes)
+        except (ValueError, TypeError):
+            duration_minutes = 60  # Значение по умолчанию
+
+        # ТЕПЕРЬ используем корректное значение
+        self.continuous_mailing = True
+        self.forever = True
+        self.continuous_mailing_duration = duration_minutes * 60  # Конвертируем в секунды
+        self.continuous_start_time = time.time()
+
+        logger.info(f"🔁 Запуск непрерывной рассылки на {duration_minutes} минут")
+
+        # Автоматически запускаем рассылку на текущей сессии
+        if self.current_session and not self.clients[self.current_session]['is_running']:
+            await self.start_bot_function(self.current_session)
+
+        self.continuous_monitor_task = asyncio.create_task(self.continuous_monitor())
         return True
 
     async def stop_continuous_mailing(self):
@@ -791,8 +1090,16 @@ class SessionSwitcher:
             logger.info("❌ Непрерывная рассылка не активна")
             return False
 
+        self.forever = False
         self.continuous_mailing = False
         logger.info("⏹️ Остановка непрерывной рассылки")
+
+        if self.continuous_monitor_task and not self.continuous_monitor_task.done():
+            self.continuous_monitor_task.cancel()
+            try:
+                await self.continuous_monitor_task
+            except asyncio.CancelledError:
+                pass
 
         # Останавливаем рассылку на текущей сессии
         if self.current_session and self.clients[self.current_session]['is_running']:
@@ -833,9 +1140,19 @@ class SessionSwitcher:
             logger.warning(f"⚠️ Непрерывная рассылка уже запущена для {self.single_continuous['session']}")
             return False
 
+        # УБЕДИТЕСЬ, ЧТО duration_minutes - ЧИСЛО, А НЕ СПИСОК
+        if isinstance(duration_minutes, list):
+            duration_minutes = duration_minutes[0] if duration_minutes else 60
+
+        # ПРЕОБРАЗУЕМ В INT ДЛЯ БЕЗОПАСНОСТИ
+        try:
+            duration_minutes = int(duration_minutes)
+        except (ValueError, TypeError):
+            duration_minutes = 60  # Значение по умолчанию
+
         self.single_continuous.update({
             'active': True,
-            'duration': duration_minutes * 60,
+            'duration': duration_minutes * 60,  # Убедитесь, что это число
             'start_time': time.time(),
             'session': self.current_session
         })
@@ -845,6 +1162,9 @@ class SessionSwitcher:
         # Автоматически запускаем рассылку если она не запущена
         if not self.clients[self.current_session]['is_running']:
             await self.start_bot_function(self.current_session)
+
+        # Запускаем мониторинг времени
+        self.continuous_monitor_task = asyncio.create_task(self.continuous_monitor())
 
         return True
 
@@ -856,6 +1176,14 @@ class SessionSwitcher:
 
         session_name = self.single_continuous['session']
         self.single_continuous['active'] = False
+
+        # Останавливаем задачу мониторинга
+        if self.continuous_monitor_task and not self.continuous_monitor_task.done():
+            self.continuous_monitor_task.cancel()
+            try:
+                await self.continuous_monitor_task
+            except asyncio.CancelledError:
+                pass
 
         logger.info(f"⏹️ Остановка непрерывной рассылки для {session_name}")
 
@@ -906,3 +1234,132 @@ class SessionSwitcher:
 
         return "\n".join(status_lines)
 
+    async def continuous_monitor(self):
+        """Фоновая задача для мониторинга времени непрерывной рассылки"""
+        if self.single_continuous['active']:
+            try:
+                # ДОБАВЬТЕ ПРОВЕРКУ ТИПОВ
+                duration = self.single_continuous['duration']
+                if not isinstance(duration, (int, float)):
+                    logger.error(f"❌ Неверный тип duration: {type(duration)}, ожидается число")
+                    await self.stop_continuous_mailing_single()
+                    return
+
+                start_time = self.single_continuous['start_time']
+                if not isinstance(start_time, (int, float)):
+                    logger.error(f"❌ Неверный тип start_time: {type(start_time)}, ожидается число")
+                    await self.stop_continuous_mailing_single()
+                    return
+
+                while (self.single_continuous['active'] and
+                       self.is_running and
+                       time.time() - start_time < duration):
+
+                    # Проверяем каждые 30 секунд
+                    await asyncio.sleep(30)
+
+                    # Логируем оставшееся время каждые 5 минут
+                    elapsed = time.time() - start_time
+                    if int(elapsed) % 300 == 0:  # Каждые 5 минут
+                        remaining = duration - elapsed
+                        minutes_left = int(remaining // 60)
+                        logger.info(f"⏱️ До окончания непрерывной рассылки: {minutes_left} минут")
+
+                # Если время вышло, автоматически останавливаем
+                if self.single_continuous['active']:
+                    logger.info("⏰ Время непрерывной рассылки истекло")
+                    await self.stop_continuous_mailing_single()
+
+            except asyncio.CancelledError:
+                logger.info("⏹️ Мониторинг непрерывной рассылки остановлен")
+            except Exception as e:
+                logger.error(f"❌ Ошибка в мониторинге непрерывной рассылки: {e}")
+
+        elif self.continuous_mailing:
+            try:
+                # АНАЛОГИЧНЫЕ ПРОВЕРКИ ДЛЯ continuous_mailing
+                duration = self.continuous_mailing_duration
+                if not isinstance(duration, (int, float)):
+                    logger.error(f"❌ Неверный тип duration: {type(duration)}, ожидается число")
+                    await self.stop_continuous_mailing()
+                    return
+
+                start_time = self.continuous_start_time
+                if not isinstance(start_time, (int, float)):
+                    logger.error(f"❌ Неверный тип start_time: {type(start_time)}, ожидается число")
+                    await self.stop_continuous_mailing()
+                    return
+
+                while (self.continuous_mailing and
+                       self.is_running and
+                       time.time() - start_time < duration):
+
+                    # Проверяем каждые 30 секунд
+                    await asyncio.sleep(30)
+
+                    # Логируем оставшееся время каждые 5 минут
+                    elapsed = time.time() - start_time
+                    if int(elapsed) % 300 == 0:  # Каждые 5 минут
+                        remaining = duration - elapsed
+                        minutes_left = int(remaining // 60)
+                        logger.info(f"⏱️ До окончания непрерывной рассылки: {minutes_left} минут")
+
+                # Если время вышло, автоматически останавливаем
+                if self.continuous_mailing:
+                    logger.info("⏰ Время непрерывной рассылки истекло")
+                    await self.stop_continuous_mailing()
+
+            except asyncio.CancelledError:
+                logger.info("⏹️ Мониторинг непрерывной рассылки остановлен")
+            except Exception as e:
+                logger.error(f"❌ Ошибка в мониторинге непрерывной рассылки: {e}")
+        else:
+            logger.info("Рассылка не запущена")
+            return None
+
+    async def leave_chat(self, chat_id, session_name):
+        try:
+            client = self.clients[session_name]['client']
+            if str(chat_id).startswith('-100'):
+                await client.leave_chat(chat_id)
+                logger.info("Автоматически вышли из плохого чата")
+        except Exception as ex:
+            logger.warning(f"Невозможно выйти из чата, сделайте это самостоятельно: {ex}")
+
+    def process_chat_identifier(self, identifier):
+        """Обрабатывает разные форматы идентификаторов чатов"""
+        identifier = identifier.strip()
+
+        if not identifier:
+            return None
+
+        # 1. Числовой ID (например: -1001641074554)
+        if identifier.replace('-', '').isdigit():
+            return int(identifier)
+
+        # 2. Username с @ (например: @channel_username)
+        if identifier.startswith('@'):
+            return identifier
+
+        # 3. Полная ссылка (например: https://t.me/piaro_chatik)
+        if identifier.startswith('https://t.me/'):
+            # Извлекаем username из ссылки
+            username = identifier.replace('https://t.me/', '').strip()
+            # Убираем слеши в конце если есть
+            username = username.rstrip('/')
+            # Убираем параметры запроса если есть
+            username = username.split('?')[0]
+            return f"@{username}" if username else None
+
+        # 4. Короткая ссылка (например: t.me/piaro_chatik)
+        if identifier.startswith('t.me/'):
+            username = identifier.replace('t.me/', '').strip()
+            username = username.rstrip('/')
+            username = username.split('?')[0]
+            return f"@{username}" if username else None
+
+        # 5. Просто username без @ (например: piaro_chatik)
+        if identifier.replace('_', '').replace('-', '').isalnum():
+            return f"@{identifier}"
+
+        return None

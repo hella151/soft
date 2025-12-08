@@ -1,54 +1,87 @@
-# import asyncio
-# from pyrogram import Client
-#
-# app = Client(api_hash='54b8ea23241abdef8044090c3c9a2add', api_id='28982778', name="karina")
-#
-#
-# from pyrogram.raw import functions, types
-#
-# async def create_folder_raw():
-#     async with app:
-#         try:
-#             # Создаем папку через raw API
-#             result = await app.invoke(
-#                 functions.folders.edit_peer_folders(
-#                     title="Моя папка",
-#                     # Необязательно: указать эмоджи для папки
-#                     # emoticon="📁"
-#                 )
-#             )
-#             print(f"Папка создана: {result}")
-#             return result
-#
-#         except Exception as e:
-#             print(f"Ошибка создания папки: {e}")
-#             return None
-#
-#
-# app.run(create_folder_raw)
-#
-#
-# {
-#     "user_id": 8165394439,
-#     "username": "xxx_xxx_xyz_xxx",
-#     "first_name": ".",
-#     "phone_number": "79226050395",
-#     "session_string": "AgG6PfoAqgGKq8PzT05VyKj9yF_l6Jnlty9Pq75LRyn9IMIQzLiNqMWnpvJJ1IEpPIdWrdQYyIAgYq0uHW3cC6gGo3SNWnbrLZLz7kvw58q2T6foz0myroer6-0BzANsZAvgrYrhcqdFr6cfxG2HC3z13Jd4OfqLZdKaOnPnG3kqCTc6FlEC3H3Lerv18vIn_ZJcj2gXSk9wJjhhqgcbY8kErt8biuLJ7J4ZsXJJSMrniFRaUpbKEspvutOnJA_LVL-WzeGZ_kcD-83n-MJND8LTVZvXX76QUMMtOLbTcaqwKB_8urWdp61taXyf4yg13YDZxXfToFxE-5DqwDC_3l6YugIQDAAAAAHmsggHAA",
-#     "created_at": "2025-09-27T12:22:03.336728"
-#   },
-#   {
-#     "user_id": 1228992044,
-#     "username": "hella777",
-#     "first_name": "𝙝𝙚𝙡𝙡𝙖...",
-#     "phone_number": "79923472259",
-#     "session_string": "AgG6PfoAVkQ8ZWmLreza1Qp8uNL3y5u1vStrK-JcSeS8rg19lKTsepe0c90Y3XnikZ847yZZiRejLZTwHdW63bzGfkBM94ZQvtyK-uq7QGpfiSAV-zXUeEhoZlR0sRrLkWfUNxaIP3Ve19IV2FFaaC3ERwD0tceV3mdM-3lbBt4HsnwUVwL6aJK96ze_OqYq3liL2lifBoSKjBtp36Ao4i2fEmJfBbBh-mBC3J9pZ0tRcE-ZAV4Qkac_xjpHxuo1whHAAon_JWWj4oyoB1FN9T0K6-u3-0rH2sgH6BcjpBpGLyGT3aYdCcH2GNYGAxbwhyOLOYzsr7YFjBBYVZH4eZTC3ITkagAAAABJQO4sAA",
-#     "created_at": "2025-10-03T14:39:14.720459"
-#   },
-# Если пользователь ввел: "search взаимные подписки python"
-command = "search взаимные подписки python"
-parts = command.split()  # ['search', 'взаимные', 'подписки', 'python']
-print(parts)
+import matplotlib.pyplot as plt
+import numpy as np
 
-cmd = parts[0]  # 'search'
-query = ' '.join(parts[1:])  # 'взаимные подписки python' ОБьДЕНИЕТ ЧЕРЕЗ ПРОБЕЛ
-print(query)
+# Данные из условия
+I_mag = 0.029012  # А, ток в цепи
+# Действующие напряжения на элементах
+U_R1 = 2.9099
+U_R2 = 2.9099
+U_L1 = 1.1849
+U_L2 = 1.1849
+U_C = 9.2348
+
+# Суммарные напряжения
+U_R = U_R1 + U_R2  # сумма напряжений на резисторах
+U_L = U_L1 + U_L2  # сумма напряжений на катушках
+
+# Представим векторы в комплексной форме (ток принят за опорный, фаза 0)
+I = I_mag + 0j  # ток
+V_R = U_R + 0j  # напряжение на резисторах совпадает по фазе с током
+V_L = 0 + U_L * 1j  # напряжение на катушках опережает ток на 90°
+V_C = 0 - U_C * 1j  # напряжение на конденсаторе отстаёт от тока на 90°
+
+# Общее напряжение
+V_total = V_R + V_L + V_C
+
+# Для наглядности создадим список векторов для построения ВДТН
+vectors_v = [
+    (V_R, 'V_R (R1+R2)', 'green'),
+    (V_L, 'V_L (L1+L2)', 'blue'),
+    (V_C, 'V_C', 'red'),
+    (V_total, 'E (общее)', 'black')
+]
+
+# Построение ВДТН (векторная диаграмма напряжений)
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+# Диаграмма напряжений
+ax1.set_title('Векторная диаграмма напряжений (ВДТН)')
+ax1.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+ax1.axvline(x=0, color='k', linestyle='--', alpha=0.3)
+ax1.set_xlabel('Re, В')
+ax1.set_ylabel('Im, В')
+ax1.grid(True)
+
+# Начало координат
+origin = 0 + 0j
+
+# Рисуем каждый вектор
+for vec, label, color in vectors_v:
+    ax1.arrow(np.real(origin), np.imag(origin), np.real(vec), np.imag(vec),
+              head_width=0.2, head_length=0.2, fc=color, ec=color, label=label)
+    # Подпись конца вектора
+    ax1.text(np.real(vec)*1.05, np.imag(vec)*1.05, label, fontsize=9)
+
+ax1.legend(loc='upper left')
+ax1.set_xlim([-10, 10])
+ax1.set_ylim([-10, 10])
+ax1.set_aspect('equal')
+
+# Построение ВДТ (векторная диаграмма тока)
+ax2.set_title('Векторная диаграмма тока (ВДТ)')
+ax2.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+ax2.axvline(x=0, color='k', linestyle='--', alpha=0.3)
+ax2.set_xlabel('Re, А')
+ax2.set_ylabel('Im, А')
+ax2.grid(True)
+
+# Вектор тока (принят за опорный)
+ax2.arrow(0, 0, np.real(I), np.imag(I), head_width=0.002, head_length=0.002,
+          fc='purple', ec='purple', label='I (ток)')
+ax2.text(np.real(I)*1.05, np.imag(I)*1.05, 'I', fontsize=12, color='purple')
+ax2.legend(loc='upper left')
+ax2.set_xlim([-0.04, 0.04])
+ax2.set_ylim([-0.04, 0.04])
+ax2.set_aspect('equal')
+
+plt.tight_layout()
+plt.show()
+
+# Вывод комплексных значений для проверки
+print("Комплексные значения:")
+print(f"Ток I = {I:.6f} A")
+print(f"Напряжение V_R = {V_R:.4f} В")
+print(f"Напряжение V_L = {V_L:.4f} В")
+print(f"Напряжение V_C = {V_C:.4f} В")
+print(f"Общее напряжение E = {V_total:.4f} В")
+print(f"Модуль E = {np.abs(V_total):.4f} В")

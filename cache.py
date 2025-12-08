@@ -44,7 +44,36 @@ class TelegramCache:
         except Exception as e:
             print_clear(f"❌ Ошибка сохранения кэша: {e}")
 
-    def load_chats(self, session_name, cache_type, max_age_hours=1):
+    def save_chats_forever(self, session_name, cache_type, chats):
+        """Сохранить чаты в кэш с названиями"""
+        # Преобразуем список чатов в формат для сохранения
+        chats_dict = {}
+        for chat in chats:
+            if isinstance(chat, dict) and 'id' in chat:
+                # Сохраняем как [title, username, http]
+                chats_dict[str(chat['id'])] = [
+                    chat.get('title', 'Без названия'),
+                    chat.get('username', ''),
+                    chat.get('http', '')
+                ]
+
+        cache_data = {
+            'session_name': session_name,
+            'cache_type': cache_type,
+            'timestamp': datetime.now().isoformat(),
+            'chats': chats_dict
+        }
+
+        cache_file = self._get_cache_path(session_name, cache_type)
+        try:
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, ensure_ascii=False, indent=2)
+            print_clear(f"💾 Кэш сохранен: {len(chats_dict)} чатов с названиями")
+        except Exception as e:
+            print_clear(f"❌ Ошибка сохранения кэша: {e}")
+
+
+    def load_chats(self, session_name, cache_type, type_):
         """Загрузить чаты из кэша"""
         cache_file = self._get_cache_path(session_name, cache_type)
 
@@ -59,14 +88,25 @@ class TelegramCache:
             cache_time = datetime.fromisoformat(cache_data['timestamp'])
             cache_age = datetime.now() - cache_time
 
-            if cache_age < timedelta(hours=max_age_hours):
-                chats_dict = cache_data.get('chats', {})
-                print_clear(f"📁 Загружено из кэша: {len(chats_dict)} чатов с названиями")
-                return chats_dict
-            else:
-                print_clear("🗑 Кэш устарел")
-                os.remove(cache_file)
-                return None
+            if type_ == "default":
+                if cache_age < timedelta(hours=3):
+                    chats_dict = cache_data.get('chats', {})
+                    print_clear(f"📁 Загружено из кэша: {len(chats_dict)} чатов с названиями")
+                    return chats_dict
+                else:
+                    print_clear("🗑 Кэш устарел")
+                    os.remove(cache_file)
+                    return None
+
+            elif type_ == 'forever':
+                if cache_age < timedelta(hours=24):
+                    chats_dict = cache_data.get('chats', {})
+                    print_clear(f"📁 Загружено из кэша: {len(chats_dict)} чатов с названиями")
+                    return chats_dict
+                else:
+                    print_clear("🗑 Кэш устарел")
+                    os.remove(cache_file)
+                    return None
 
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             print_clear(f"❌ Ошибка загрузки кэша (поврежденный файл): {e}")
@@ -79,9 +119,9 @@ class TelegramCache:
             print_clear(f"❌ Ошибка загрузки кэша: {e}")
             return None
 
-    def get_chat_title(self, session_name, cache_type, chat_id):
+    def get_chat_title(self, session_name, cache_type, chat_id, type_):
         """Получить название чата из кэша"""
-        chats_dict = self.load_chats(session_name, cache_type)
+        chats_dict = self.load_chats(session_name, cache_type, type_ = type_)
         if chats_dict and str(chat_id) in chats_dict:
             return chats_dict[str(chat_id)]
         return None

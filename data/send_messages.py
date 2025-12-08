@@ -26,7 +26,7 @@ async def main_bot_function(client: Client, chats: list, cache_manager=None, ses
             return
 
         n = 0
-        while n < settings['messages_per_cycle']:
+        while n < settings['messages_per_cycle'] + random.randint(1, 3):
             message = random.choice(messages)
 
             # Проверяем, что сообщение не пустое
@@ -39,14 +39,12 @@ async def main_bot_function(client: Client, chats: list, cache_manager=None, ses
                 message_text=message,
                 client=client,
                 chats_data=chats,
-                cache_manager=cache_manager,
-                session_name=session_name,
                 settings=settings,
                 session_switcher=session_switcher
             )
 
             logger.info(f"📊 цикл: {n + 1} завершён")
-            await asyncio.sleep(settings['delay_between_messages'] + random.randint(1, 3))
+            await asyncio.sleep(settings['delay_between_messages'] + random.uniform(1.5, 10.5))
 
             n += 1
 
